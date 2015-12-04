@@ -1,0 +1,124 @@
+<!-- Game of Life Simulator in Javascript
+//
+// MAINTENANCE HISTORY
+// DATE         PROGRAMMER AND DETAILS
+// 04-12-15     Rahul Sharma    	Original
+//									Adapted from Paul Callahan's article 
+//									http://www.math.com/students/wonders/life/life.html
+//
+//-------------------------------------------------------------------------------------
+
+// GAME RULES
+// 1. A dead cell with exactly three live neighbors becomes a live cell (birth).	
+// 2. A live cell with two or three live neighbors stays alive (survival).	
+// 3. In all other cases, a cell dies or remains dead (overcrowding or loneliness).
+//
+//-------------------------------------------------------------------------------------
+-->
+
+<!-- Create a canvas -->
+<canvas id="canvas" width="512" height="512"></canvas>
+
+<!--Javascript functions to simulate -->
+<script>
+var canvascontext = document.getElementById('canvas').getContext('2d'),
+world = [];
+canvascontext.strokeStyle = 'lightgray';
+canvascontext.fillStyle = '#797bff';
+
+init();
+
+/***
+ * Initialize game.
+ */
+function init() {
+    for (var i=0; i<64; i++) {
+        world[i] = [];
+        for (var j=0; j<64; j++) {
+            world[i][j] = 0;
+        }
+    }
+    
+    // Prefilled world with a spaceship (glider)
+    [
+        [6, 3],[7, 4],[5,5],[6,5],[7,5],
+    ]
+    .forEach(function(point) {
+        world[point[0]][point[1]] = 1;
+    }); 
+	
+    update(); 
+}
+
+
+/***
+ * Check which world are still alive.
+ */
+function update() {
+    
+    var result = [];
+    
+    /***
+     * Return amount of alive neighbours for a cell
+     */
+    function countAliveNeighbours(x, y) {
+        var alive_neighbours = 0;
+        
+        function _isFilled(x, y) {
+            return world[x] && world[x][y];
+        }
+        
+        if (_isFilled(x-1, y-1)) alive_neighbours++;
+        if (_isFilled(x,   y-1)) alive_neighbours++;
+        if (_isFilled(x+1, y-1)) alive_neighbours++;
+        if (_isFilled(x-1, y  )) alive_neighbours++;
+        if (_isFilled(x+1, y  )) alive_neighbours++;
+        if (_isFilled(x-1, y+1)) alive_neighbours++;
+        if (_isFilled(x,   y+1)) alive_neighbours++;
+        if (_isFilled(x+1, y+1)) alive_neighbours++;
+        
+        return alive_neighbours;
+    }
+    
+    // compute game of life rules for each cell
+    world.forEach(function(row, x) {
+        result[x] = [];
+        row.forEach(function(cell, y) {
+            var alive = 0,
+                count = countAliveNeighbours(x, y);
+            
+            if (cell > 0) {
+                alive = count === 2 || count === 3 ? 1 : 0;
+            } else {
+                alive = count === 3 ? 1 : 0;
+            }
+            
+            result[x][y] = alive;
+        });
+    });
+    
+    world = result;
+    
+    draw();
+}
+
+/**
+ * Draw world on canvascontext
+ */
+function draw() {
+    canvascontext.clearRect(0, 0, 512, 512);
+    world.forEach(function(row, x) {
+        row.forEach(function(cell, y) {
+            canvascontext.beginPath();
+            canvascontext.rect(x*8, y*8, 8, 8);
+            if (cell) {
+                canvascontext.fill();
+            } else {
+                canvascontext.stroke();
+            }
+        });
+    });
+    setTimeout(function() {update();}, 100);
+}
+
+</script>
