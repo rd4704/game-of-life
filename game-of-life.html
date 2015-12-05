@@ -5,6 +5,10 @@
 // 04-12-15     Rahul Sharma    	Original
 //									Adapted from Paul Callahan's article 
 //									http://www.math.com/students/wonders/life/life.html
+// 05-12-15     Rahul Sharma        Added functionality to allow user select a cell by clicking
+                                    Added buttons to control the game
+//                                  Added global variables to adjust cell,grid and world sizes
+//                                  Created HTML document structure
 //
 //-------------------------------------------------------------------------------------
 
@@ -15,110 +19,234 @@
 //
 //-------------------------------------------------------------------------------------
 -->
-
-<!-- Create a canvas -->
-<canvas id="canvas" width="512" height="512"></canvas>
-
-<!--Javascript functions to simulate -->
-<script>
-var canvascontext = document.getElementById('canvas').getContext('2d'),
-world = [];
-canvascontext.strokeStyle = 'lightgray';
-canvascontext.fillStyle = '#797bff';
-
-init();
-
-/***
- * Initialize game.
- */
-function init() {
-    for (var i=0; i<64; i++) {
-        world[i] = [];
-        for (var j=0; j<64; j++) {
-            world[i][j] = 0;
-        }
-    }
-    
-    // Prefilled world with a spaceship (glider)
-    [
-        [6, 3],[7, 4],[5,5],[6,5],[7,5],
-    ]
-    .forEach(function(point) {
-        world[point[0]][point[1]] = 1;
-    }); 
-	
-    update(); 
-}
-
-
-/***
- * Check which world are still alive.
- */
-function update() {
-    
-    var result = [];
-    
-    /***
-     * Return amount of alive neighbours for a cell
-     */
-    function countAliveNeighbours(x, y) {
-        var alive_neighbours = 0;
-        
-        function _isFilled(x, y) {
-            return world[x] && world[x][y];
-        }
-        
-        if (_isFilled(x-1, y-1)) alive_neighbours++;
-        if (_isFilled(x,   y-1)) alive_neighbours++;
-        if (_isFilled(x+1, y-1)) alive_neighbours++;
-        if (_isFilled(x-1, y  )) alive_neighbours++;
-        if (_isFilled(x+1, y  )) alive_neighbours++;
-        if (_isFilled(x-1, y+1)) alive_neighbours++;
-        if (_isFilled(x,   y+1)) alive_neighbours++;
-        if (_isFilled(x+1, y+1)) alive_neighbours++;
-        
-        return alive_neighbours;
-    }
-    
-    // compute game of life rules for each cell
-    world.forEach(function(row, x) {
-        result[x] = [];
-        row.forEach(function(cell, y) {
-            var alive = 0,
-                count = countAliveNeighbours(x, y);
-            
-            if (cell > 0) {
-                alive = count === 2 || count === 3 ? 1 : 0;
-            } else {
-                alive = count === 3 ? 1 : 0;
+<html>
+<head>
+<!--CSS STYLE-->
+    <style>
+        .button {
+            display: block;
+            width: 70px;
+            height: 17px;
+            background: #57a58a;
+            padding: 10px;
+            text-align: center;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
             }
-            
-            result[x][y] = alive;
-        });
-    });
-    
-    world = result;
-    
-    draw();
-}
-
-/**
- * Draw world on canvascontext
- */
-function draw() {
-    canvascontext.clearRect(0, 0, 512, 512);
-    world.forEach(function(row, x) {
-        row.forEach(function(cell, y) {
-            canvascontext.beginPath();
-            canvascontext.rect(x*8, y*8, 8, 8);
-            if (cell) {
-                canvascontext.fill();
-            } else {
-                canvascontext.stroke();
+        .outer {
+            width:100%;
+            text-align: left;
             }
-        });
-    });
-    setTimeout(function() {update();}, 100);
-}
+        .inner {
+            display: inline-block;
+            }
+    </style>
 
-</script>
+</head>
+    
+<body>
+    
+<!-- HTML -->
+    
+    <!-- Create a canvas -->
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <br/><br/>    
+    <div class="outer">
+      <div title="Click to step 1!" class="inner"><a class="button" id="go">Go!</a></div>
+      <div title="Click auto simulate infinitely!" class="inner"><a class="button" id="go-crazy">Go crazy!</a></div>
+      <div title="Click to reset the world!" class="inner"><a class="button" id="reset">Reset!</a></div>
+    </div>
+    
+
+<!-- JAVASCRIPT -->
+    
+    <!--Javascript functions to simulate -->
+    <script>
+        var canvascontext = document.getElementById('canvas').getContext('2d');
+        var canvas = document.getElementById('canvas');
+        canvas.addEventListener("click", canvasOnClickHandler, false);
+        var btnGo = document.getElementById('go');
+        btnGo.addEventListener("click", btnGoOnClickHandler, false);
+        var btnGoCrazy = document.getElementById('go-crazy');
+        btnGoCrazy.addEventListener("click", btnGoCrazyOnClickHandler, false);
+        var btnReset = document.getElementById('reset');
+        btnReset.addEventListener("click", btnResetOnClickHandler, false);
+
+        world = [];
+        canvascontext.strokeStyle = 'lightgray';
+        canvascontext.fillStyle = '#797bff';
+        CELL_SIZE = 10;
+        GRID_SIZE = 64;
+        WORLD_DIMENSION = 512;
+
+        init();
+
+        /***
+         * Initialize game.
+         */
+        function init() {
+            for (var i=0; i<GRID_SIZE; i++) {
+                world[i] = [];
+                for (var j=0; j<GRID_SIZE; j++) {
+                    world[i][j] = 0;
+                }
+            }
+
+            // Prefilled world with a spaceship (glider)
+            [
+                [6, 3],[7, 4],[5,5],[6,5],[7,5],
+            ]
+            .forEach(function(point) {
+                world[point[0]][point[1]] = 1;
+            }); 
+
+            draw();
+        }
+
+
+        /***
+         * Check which cells are still alive.
+         */
+        function update(crazymode) {
+
+            var result = [];
+
+            /***
+             * Return amount of alive neighbours for a cell
+             */
+            function countAliveNeighbours(x, y) {
+                var alive_neighbours = 0;
+
+                function _isFilled(x, y) {
+                    return world[x] && world[x][y];
+                }
+
+                if (_isFilled(x-1, y-1)) alive_neighbours++;
+                if (_isFilled(x,   y-1)) alive_neighbours++;
+                if (_isFilled(x+1, y-1)) alive_neighbours++;
+                if (_isFilled(x-1, y  )) alive_neighbours++;
+                if (_isFilled(x+1, y  )) alive_neighbours++;
+                if (_isFilled(x-1, y+1)) alive_neighbours++;
+                if (_isFilled(x,   y+1)) alive_neighbours++;
+                if (_isFilled(x+1, y+1)) alive_neighbours++;
+
+                return alive_neighbours;
+            }
+
+            // compute game of life rules for each cell
+            world.forEach(function(row, x) {
+                result[x] = [];
+                row.forEach(function(cell, y) {
+                    var alive = 0,
+                        count = countAliveNeighbours(x, y);
+
+                    if (cell > 0) {
+                        alive = count === 2 || count === 3 ? 1 : 0;
+                    } else {
+                        alive = count === 3 ? 1 : 0;
+                    }
+
+                    result[x][y] = alive;
+                });
+            });
+
+            world = result;
+            if(crazymode)
+                keepDrawing(crazymode);
+            else
+                draw();
+        }
+
+        /**
+         * Draw world on canvascontext
+         */
+        function draw() {
+            canvascontext.clearRect(0, 0, WORLD_DIMENSION, WORLD_DIMENSION);
+            world.forEach(function(row, x) {
+                row.forEach(function(cell, y) {
+                    canvascontext.beginPath();
+                    canvascontext.rect(x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    if (cell) {
+                        canvascontext.fill();
+                    } else {
+                        canvascontext.stroke();
+                    }
+                });
+            });
+        }
+
+
+        /**
+         * Keep drawing world on canvascontext
+         */
+        function keepDrawing(crazymode) {
+            draw();
+            setTimeout(function() {update(crazymode);}, 100);
+        }
+
+
+        /**
+         * Canvas click handler
+         */
+        function canvasOnClickHandler(event) {
+            var point = getCursorPosition(event);
+            world[point[0]][point[1]] = 1;
+            draw();
+          };
+        
+
+        /**
+         * Go button click handler
+         */
+        function btnGoOnClickHandler(event) {
+            keepDrawing(false);
+          };
+
+
+        /**
+         * Go Crazy button click handler
+         */
+        function btnGoCrazyOnClickHandler(event) {
+            keepDrawing(true);
+          };
+
+
+        /**
+         * Reset button click handler
+         */
+        function btnResetOnClickHandler(event) {
+            location.reload(); 
+          };
+        
+
+        /**
+         * function to get cursor postion on world grid
+         */
+        function getCursorPosition(event) {
+            var x;
+            var y;
+            if (event.pageX || event.pageY) {
+              x = event.pageX;
+              y = event.pageY;
+            } else {
+              x = event.clientX
+                + document.body.scrollLeft
+                + document.documentElement.scrollLeft;
+              y = event.clientY
+                + document.body.scrollTop
+                + document.documentElement.scrollTop;
+            }
+
+            x -= canvas.offsetLeft;
+            y -= canvas.offsetTop;
+
+            var point = [Math.floor((x - 2) / CELL_SIZE), Math.floor((y - 4) / CELL_SIZE)];
+            return point;
+          };
+
+    </script>
+</body>
+    
+</html>
