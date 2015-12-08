@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">    
+  <script src="script.js"></script>
+  <title>Game of Life Unit tests</title>
+  <link rel="stylesheet" href="http://code.jquery.com/qunit/qunit-1.20.0.css">
+</head>
+<body>
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+  <script src="http://code.jquery.com/qunit/qunit-1.20.0.js"></script>
+  
+  <!-- Unit tests -->
+  <script>		
+		QUnit.test( "script test", function( assert ) {
+            init_world();
+            init_game();
+            
+            // simulate a mouse event to test cursor position calculation
+            var evt = document.createEvent("MouseEvents");
+            evt.initMouseEvent("click", true, true, window,
+            50, 50, 50, 50, 50, false, false, false, false, 0, null);
+            
+            // test if countAliveNeighbours function return no more than 8 alive neighbours
+		    assert.ok( countAliveNeighbours(6, 3) <= 8, "Passed!" );
+            
+            // test if countAliveNeighbours at 5,5 point returns exactly 1 alive neighbour
+		    assert.ok( countAliveNeighbours(5, 5) == 1, "Passed!" );
+            
+            // test if getCursorPosition returns a point value
+            assert.notEqual(getCursorPosition(evt), null, "Passed");
+		});
+  </script>
+</body>
+</html>
